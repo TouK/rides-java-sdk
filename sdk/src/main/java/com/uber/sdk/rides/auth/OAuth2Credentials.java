@@ -22,12 +22,7 @@
 
 package com.uber.sdk.rides.auth;
 
-import com.google.api.client.auth.oauth2.AuthorizationCodeFlow;
-import com.google.api.client.auth.oauth2.AuthorizationCodeTokenRequest;
-import com.google.api.client.auth.oauth2.BearerToken;
-import com.google.api.client.auth.oauth2.ClientParametersAuthentication;
-import com.google.api.client.auth.oauth2.Credential;
-import com.google.api.client.auth.oauth2.TokenResponse;
+import com.google.api.client.auth.oauth2.*;
 import com.google.api.client.http.GenericUrl;
 import com.google.api.client.http.HttpTransport;
 import com.google.api.client.http.javanet.NetHttpTransport;
@@ -39,6 +34,7 @@ import com.uber.sdk.core.auth.Scope;
 import com.uber.sdk.rides.client.SessionConfiguration;
 import com.uber.sdk.rides.client.utils.Preconditions;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
@@ -46,10 +42,6 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.TreeSet;
-
-import javax.annotation.Nullable;
-
-import static com.uber.sdk.rides.client.SessionConfiguration.EndpointRegion.WORLD;
 
 /**
  * Utility for creating and managing OAuth 2.0 Credentials.
@@ -69,7 +61,6 @@ public class OAuth2Credentials {
      */
     public static class Builder {
 
-        private SessionConfiguration.EndpointRegion loginRegion;
         private Set<Scope> scopes;
         private Set<String> customScopes;
         private String clientId;
@@ -78,12 +69,12 @@ public class OAuth2Credentials {
         private HttpTransport httpTransport;
         private AuthorizationCodeFlow authorizationCodeFlow;
         private AbstractDataStoreFactory credentialDataStoreFactory;
+        private String loginHost = "https://login.uber.com";
 
         /**
          * Set the {@link SessionConfiguration} information
          */
         public Builder setSessionConfiguration(SessionConfiguration configuration) {
-            this.loginRegion = configuration.getEndpointRegion();
             if (scopes != null) {
                 this.scopes = new HashSet<>(configuration.getScopes());
             }
@@ -95,14 +86,7 @@ public class OAuth2Credentials {
             this.clientId = configuration.getClientId();
             this.clientSecret = configuration.getClientSecret();
             this.redirectUri = configuration.getRedirectUri();
-            return this;
-        }
-
-        /**
-         * Sets the authorization server domain.
-         */
-        public Builder setLoginRegion(SessionConfiguration.EndpointRegion loginRegion) {
-            this.loginRegion = loginRegion;
+            this.loginHost = configuration.getLoginHost();
             return this;
         }
 
@@ -205,10 +189,6 @@ public class OAuth2Credentials {
                 credentialDataStoreFactory = MemoryDataStoreFactory.getDefaultInstance();
             }
 
-            if (loginRegion == null) {
-                loginRegion = WORLD;
-            }
-
             if (authorizationCodeFlow == null) {
                 try {
                     AuthorizationCodeFlow.Builder builder =
@@ -216,10 +196,10 @@ public class OAuth2Credentials {
                                     BearerToken.authorizationHeaderAccessMethod(),
                                     httpTransport,
                                     new JacksonFactory(),
-                                    new GenericUrl(getLoginDomain(loginRegion) + TOKEN_PATH),
+                                    new GenericUrl(loginHost + TOKEN_PATH),
                                     new ClientParametersAuthentication(clientId, clientSecret),
                                     clientId,
-                                    getLoginDomain(loginRegion) + AUTHORIZATION_PATH);
+                                    loginHost + AUTHORIZATION_PATH);
                     if (oAuth2Credentials.scopes != null && !oAuth2Credentials.scopes.isEmpty()) {
                         builder.setScopes(oAuth2Credentials.scopes);
                     }
@@ -231,10 +211,6 @@ public class OAuth2Credentials {
             }
             oAuth2Credentials.authorizationCodeFlow = authorizationCodeFlow;
             return oAuth2Credentials;
-        }
-
-        private String getLoginDomain(SessionConfiguration.EndpointRegion endpointRegion) {
-            return "https://login." + endpointRegion.domain;
         }
     }
 
