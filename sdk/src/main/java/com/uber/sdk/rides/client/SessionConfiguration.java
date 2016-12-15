@@ -30,7 +30,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Locale;
 
-import static com.uber.sdk.rides.client.SessionConfiguration.EndpointRegion.WORLD;
+import static com.uber.sdk.rides.client.SessionConfiguration.EndpointRegion.DEFAULT;
 import static com.uber.sdk.rides.client.utils.Preconditions.checkNotNull;
 
 /**
@@ -54,13 +54,19 @@ public class SessionConfiguration implements Serializable {
     }
 
     public enum EndpointRegion {
-        WORLD("uber.com"),
-        CHINA("uber.com.cn");
+        DEFAULT("uber.com");
 
-        public String domain;
+        private String domain;
 
         EndpointRegion(String domain) {
             this.domain = domain;
+        }
+
+        /**
+         * @return domain to use.
+         */
+        public String getDomain() {
+            return domain;
         }
     }
 
@@ -72,7 +78,6 @@ public class SessionConfiguration implements Serializable {
         private String clientSecret;
         private String serverToken;
         private String redirectUri;
-        private EndpointRegion region = EndpointRegion.WORLD;
         private Environment environment;
         private Collection<Scope> scopes;
         private Collection<String> customScopes;
@@ -123,17 +128,6 @@ public class SessionConfiguration implements Serializable {
          */
         public Builder setRedirectUri(@Nonnull String redirectUri) {
             this.redirectUri = redirectUri;
-            return this;
-        }
-
-        /**
-         * Set the {@link EndpointRegion} your app is registered in.
-         * Used to determine what endpoints to send requests to.
-         *
-         * @param region The {@link EndpointRegion} the SDK should use
-         */
-        public Builder setEndpointRegion(@Nonnull EndpointRegion region) {
-            this.region = region;
             return this;
         }
 
@@ -192,10 +186,6 @@ public class SessionConfiguration implements Serializable {
         public SessionConfiguration build() {
             checkNotNull(clientId, "Client must be set");
 
-            if (region == null) {
-                region = WORLD;
-            }
-
             if (environment == null) {
                 environment = Environment.PRODUCTION;
             }
@@ -221,7 +211,7 @@ public class SessionConfiguration implements Serializable {
                     clientSecret,
                     serverToken,
                     redirectUri,
-                    region,
+                    DEFAULT,
                     environment,
                     baseUrl,
                     scopes,
@@ -234,7 +224,7 @@ public class SessionConfiguration implements Serializable {
     private final String clientSecret;
     private final String serverToken;
     private final String redirectUri;
-    private final EndpointRegion region;
+    private final EndpointRegion endpointRegion;
     private final Environment environment;
     private final String baseUrl;
     private final Collection<Scope> scopes;
@@ -245,7 +235,7 @@ public class SessionConfiguration implements Serializable {
                                    @Nonnull String clientSecret,
                                    @Nonnull String serverToken,
                                    @Nonnull String redirectUri,
-                                   @Nonnull EndpointRegion region,
+                                   @Nonnull EndpointRegion endpointRegion,
                                    @Nonnull Environment environment,
                                    String baseUrl,
                                    @Nonnull Collection<Scope> scopes,
@@ -255,7 +245,7 @@ public class SessionConfiguration implements Serializable {
         this.clientSecret = clientSecret;
         this.serverToken = serverToken;
         this.redirectUri = redirectUri;
-        this.region = region;
+        this.endpointRegion = endpointRegion;
         this.environment = environment;
         this.baseUrl = baseUrl;
         this.scopes = scopes;
@@ -300,16 +290,6 @@ public class SessionConfiguration implements Serializable {
     }
 
     /**
-     * Gets the current {@link EndpointRegion} the SDK is using.
-     * Defaults to {@link EndpointRegion#WORLD}.
-     *
-     * @return The {@link EndpointRegion} the SDK is using.
-     */
-    public EndpointRegion getEndpointRegion() {
-        return region;
-    }
-
-    /**
      * Gets the environment configured, either {@link Environment#PRODUCTION} or {@link Environment#SANDBOX}
      *
      * @return {@link Environment} that is configured
@@ -319,13 +299,31 @@ public class SessionConfiguration implements Serializable {
     }
 
     /**
+     * Gets the current {@link EndpointRegion} the SDK is using.
+     * Defaults to {@link EndpointRegion#DEFAULT}.
+     *
+     * @return the {@link EndpointRegion} the SDK us using.
+     */
+    public EndpointRegion getEndpointRegion() {
+        return endpointRegion;
+    }
+
+    /**
      * Gets the endpoint host used to hit the Uber API.
      */
     @Nonnull
     public String getEndpointHost() {
         return baseUrl != null ?
                 baseUrl :
-                String.format("https://%s.%s", environment.subDomain, region.domain);
+                String.format("https://%s.%s", environment.subDomain, DEFAULT.getDomain());
+    }
+
+    /**
+     * Gets the login host used to sign in to the Uber API.
+     */
+    @Nonnull
+    public String getLoginHost() {
+        return String.format("https://login.%s", DEFAULT.getDomain());
     }
 
     /**
@@ -358,7 +356,6 @@ public class SessionConfiguration implements Serializable {
         return new Builder()
                 .setClientId(clientId)
                 .setRedirectUri(redirectUri)
-                .setEndpointRegion(region)
                 .setEnvironment(environment)
                 .setScopes(scopes);
     }

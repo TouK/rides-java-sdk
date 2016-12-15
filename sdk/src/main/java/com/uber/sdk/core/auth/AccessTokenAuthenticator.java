@@ -40,7 +40,7 @@ import retrofit2.converter.moshi.MoshiConverterFactory;
 public class AccessTokenAuthenticator implements Authenticator {
 
     private static final String HEADER_BEARER_ACCESS_VALUE = "Bearer %s";
-    private static final String TOKEN_URL = "https://login.%s/oauth/v2/";
+    private static final String TOKEN_URL = "%s/oauth/v2/";
 
     private final SessionConfiguration sessionConfiguration;
     private final AccessTokenStorage tokenStorage;
@@ -51,8 +51,7 @@ public class AccessTokenAuthenticator implements Authenticator {
                                     AccessTokenStorage tokenStorage) {
         this(sessionConfiguration,
                 tokenStorage,
-                createOAuthService(String.format(TOKEN_URL,
-                        sessionConfiguration.getEndpointRegion().domain)));
+                createOAuthService(String.format(TOKEN_URL, sessionConfiguration.getLoginHost())));
     }
 
     AccessTokenAuthenticator(SessionConfiguration sessionConfiguration,
